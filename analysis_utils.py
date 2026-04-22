@@ -1,22 +1,28 @@
-"""ResearchScorer — LLM e2e test 1776848547"""
+import numpy as np
+from typing import List, Dict, Optional
 
-import math
+# Updated: 2026-04-22 09:37:34 UTC (raw_patch test)
 
-def cosine_similarity(vec_a: list, vec_b: list) -> float:
-    dot = sum(a * b for a, b in zip(vec_a, vec_b))
-    mag_a = math.sqrt(sum(a**2 for a in vec_a))
-    mag_b = math.sqrt(sum(b**2 for b in vec_b))
-    return dot / (mag_a * mag_b) if mag_a and mag_b else 0.0
+def compute_loss(predictions: List[float], targets: List[float]) -> float:
+    """MSE 손실 계산"""
+    arr_pred = np.array(predictions)
+    arr_tgt  = np.array(targets)
+    return float(np.mean((arr_pred - arr_tgt) ** 2))
 
-class ResearchScorer:
-    def __init__(self, threshold: int = 30):
-        self.threshold = threshold
-        self._history: list[float] = []
+def normalize_features(data: np.ndarray, method: str = "minmax") -> np.ndarray:
+    """특성 정규화 (minmax / zscore)"""
+    if method == "zscore":
+        return (data - data.mean()) / (data.std() + 1e-8)
+    mn, mx = data.min(), data.max()
+    return (data - mn) / (mx - mn + 1e-8)
 
-    def score(self, technical: float, novelty: float = 1.0) -> float:
-        raw = technical * novelty
-        self._history.append(raw)
-        return round(raw, 2)
+class ExperimentTracker:
+    def __init__(self, name: str):
+        self.name = name
+        self.metrics: Dict[str, List[float]] = {}
 
-    def is_valuable(self, score: float) -> bool:
-        return score >= self.threshold
+    def log(self, key: str, value: float) -> None:
+        self.metrics.setdefault(key, []).append(value)
+
+    def summary(self) -> Dict[str, float]:
+        return {k: float(np.mean(v)) for k, v in self.metrics.items()}
